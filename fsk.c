@@ -19,19 +19,13 @@ int main(void) {
 
     /* initial state */
     float complex carrier = 1.0f;
-    float samples_since_bit_start = -1.0f * samples_per_bit;
-
-    /* emit one bit period of mark tone so that decoder sees mark-to-space transition */
-    for (; samples_since_bit_start < 0.0f; samples_since_bit_start++) {
-        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
-        carrier *= advance_mark;
-    }
+    float samples_since_bit_start = 0;
 
     /* for each byte on stdin... */
     for (int byte; (byte = fgetc(stdin)) != EOF; )
         /* for each bit (including start and stop bits)... */
         for (size_t ibit = 0; ibit < 10; ibit++, samples_since_bit_start -= samples_per_bit) {
-            const int bit = ibit < 1 ? 0 : ibit < 9 ? byte & (1 << (ibit - 1)) : 1;
+            const int bit = ibit < 1 ? 1 : ibit < 2 ? 0 : byte & (1 << (ibit - 2));
 
             /* for each sample, accounting for noninteger sample rate over baud... */
             for (; samples_since_bit_start < samples_per_bit; samples_since_bit_start++) {
@@ -43,4 +37,11 @@ int main(void) {
             const float magsquared = cmagsquaredf(carrier);
             carrier *= (3.0f - magsquared) * 0.5f;
         }
+
+    /* emit trailing mark tone for two bit periods to flush decoder */
+    for (; samples_since_bit_start < 2.0f * samples_per_bit; samples_since_bit_start++) {
+        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
+        carrier *= advance_mark;
+    }
+
 }
