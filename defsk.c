@@ -77,7 +77,7 @@ int main(void) {
 
         if (9 == ibit &&
             0 == banged &&
-            samples_since_last_transition == samples_per_bit / 2 &&
+            samples_since_last_transition >= samples_per_bit / 2 &&
             samples_since_last_bit >= 3 * samples_per_bit / 2) {
             /* detected a down transition at the start of a byte */
             ibit = 0;
