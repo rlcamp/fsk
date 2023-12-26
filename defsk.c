@@ -20,7 +20,7 @@ int main(void) {
     const float complex advance_space = cexpf(I * 2.0f * (float)M_PI * f_space / sample_rate);
 
     /* 3 dB cutoff frequency for low pass filters centered on each frequency */
-    const float fc = 1.0f * baud;
+    const float fc = 0.5f * baud;
 
     /* compute alpha of an exponential filter centered at each of the two frequencies */
     const float tmp = cosf(2.0f * (float)M_PI * fc / sample_rate);
