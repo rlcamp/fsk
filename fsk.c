@@ -43,5 +43,4 @@ int main(void) {
         fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
         carrier *= advance_mark;
     }
-
 }

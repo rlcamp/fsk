@@ -1,6 +1,5 @@
 /* consume raw s16 pcm samples at 11025 sps, containing bell 203 modulation, and emit bytes
- usage: ffmpeg -i /tmp/tmp.wav -f s16le - | ./defsk
- */
+ usage: ffmpeg -i /tmp/tmp.wav -f s16le -ar 11025 - | ./defsk */
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -91,8 +90,7 @@ int main(void) {
                 if (1 == banged) putchar(byte);
 
                 /* otherwise print a warning to stderr */
-                else fprintf(stderr, "warning: %s: discarding possible %#x\n",
-                    __func__, byte);
+                else fprintf(stderr, "warning: %s: discarding possible %#x\n", __func__, byte);
             } else {
                 /* set or clear this bit in the byte in progress */
                 byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
