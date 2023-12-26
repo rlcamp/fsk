@@ -10,12 +10,6 @@ static float cmagsquaredf(const float complex x) {
     return crealf(x) * crealf(x) + cimagf(x) * cimagf(x);
 }
 
-static float complex renormalize(const float complex x) {
-    /* assuming x is already near unity, renormalize to unity w/o div or sqrt */
-    const float magsquared = cmagsquaredf(x);
-    return x * (3.0f - magsquared) * 0.5f;
-}
-
 int main(void) {
     /* input arguments, all in cycles, samples, or symbols per second */
     const float sample_rate = 11025, f_mark = 1270, f_space = 1070, baud = 300;
@@ -31,15 +25,13 @@ int main(void) {
     /* compute alpha of an exponential filter centered at each of the two frequencies */
     const float tmp = cosf(2.0f * (float)M_PI * fc / sample_rate);
     const float alpha = tmp - 1.0f + sqrtf(tmp * tmp - 4.0f * tmp + 3.0f);
+    const float one_minus_alpha = 1.0f - alpha;
 
     /* mag squared of response to space of the filter centered at mark, and vice versa */
     const float opp_response = cmagsquaredf(alpha / (1.0f - (1.0f - alpha) * cexpf(I * 2.0f * (float)M_PI * (f_mark - f_space) / sample_rate)));
 
     /* scaling factor for combining filter outputs to obtain a decision value */
     const float normalize = 0.5f * (1.0f + opp_response) / (1.0f - opp_response);
-
-    /* carriers for the two tones, should always be (nearly) unit magnitude */
-    float complex carrier_mark = 1.0f, carrier_space = 1.0f;
 
     /* response of the filters centered on each carrier */
     float complex mark = 0.0f, space = 0.0f;
@@ -60,9 +52,9 @@ int main(void) {
 
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
-        /* maintain filters around each of the two possible carriers */
-        mark = mark + alpha * (sample * carrier_mark - mark);
-        space = space + alpha * (sample * carrier_space - space);
+        /* maintain filters around each of the two possible frequencies */
+        mark = sample + one_minus_alpha * (mark * advance_mark - sample);
+        space = sample + one_minus_alpha * (space * advance_space - sample);
 
         /* power in the separate mark and space filters */
         const float mm = cmagsquaredf(mark), ss = cmagsquaredf(space);
@@ -72,10 +64,6 @@ int main(void) {
 
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
-
-        /* maintain carriers */
-        carrier_mark = renormalize(carrier_mark * advance_mark);
-        carrier_space = renormalize(carrier_space * advance_space);
 
         /* what follows is some very quick and dirty code from 2014 that takes oversampled,
          thresholded input and converts it to serial bytes, assuming 8N1 encoding, emitting
