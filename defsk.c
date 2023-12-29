@@ -5,7 +5,7 @@
 #include <math.h>
 #include <complex.h>
 #include <assert.h>
-#include <limits.h>
+#include <stdint.h>
 
 static float cmagsquaredf(const float complex x) {
     return crealf(x) * crealf(x) + cimagf(x) * cimagf(x);
