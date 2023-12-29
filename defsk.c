@@ -111,7 +111,7 @@ int main(void) {
         const float normalized = 0.5f + normalize * (mm - ss) / (mm + ss);
 
         /* either 0 or 1, with some hysteresis for debouncing */
-        banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
+        banged = banged ? (normalized < 0.4f ? 0 : 1) : (normalized < 0.6f ? 0 : 1);
 
         /* what follows is some very quick and dirty code from 2014 that takes oversampled,
          thresholded input and converts it to serial bytes, assuming 8N1 encoding, emitting
