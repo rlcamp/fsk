@@ -61,6 +61,8 @@ static float butterworth_response(float f, float fc, float fs, unsigned n) {
 }
 
 int main(void) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     /* input arguments, all in cycles, samples, or symbols per second */
     const float sample_rate = 11025, f_mark = 1270, f_space = 1070, baud = 300;
 
