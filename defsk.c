@@ -1,4 +1,4 @@
-/* consume raw s16 pcm samples at 11025 sps, containing bell 203 modulation, and emit bytes
+/* consume raw s16 pcm samples at 11025 sps, containing bell 103 modulation, and emit bytes
  usage: ffmpeg -i /tmp/tmp.wav -f s16le -ar 11025 - | ./defsk */
 #include <stdlib.h>
 #include <stdio.h>
