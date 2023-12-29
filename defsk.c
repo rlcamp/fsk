@@ -111,7 +111,7 @@ int main(void) {
         const float normalized = 0.5f + normalize * (mm - ss) / (mm + ss);
 
         /* either 0 or 1, with some hysteresis for debouncing */
-        banged = banged ? (normalized < 0.4f ? 0 : 1) : (normalized < 0.6f ? 0 : 1);
+        banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
 
         if (9 == ibit) {
             if (!banged && banged_previous) {
