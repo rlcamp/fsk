@@ -119,22 +119,24 @@ int main(void) {
                 samples_until_next_bit = samples_per_bit * 1.5f;
                 ibit = 0;
             }
-        }
-        /* whenever a transition is seen within a byte, update the time to next bit */
-        else if (banged != banged_previous)
-            samples_until_next_bit = samples_per_bit * 0.5f;
-        else if (samples_until_next_bit <= 0.5f) {
-            /* if this was the end-of-byte symbol... */
-            if (8 == ibit) {
-                /* if the end-of-byte symbol was correct, emit complete byte */
-                if (1 == banged) putchar(byte);
-                else fprintf(stderr, "warning: %s: discarding possible %#x\n", __func__, byte);
-            }
-            /* otherwise set or clear this bit in the byte in progress */
-            else byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
+        } else {
+            /* whenever a transition is seen within a byte, update the time to next bit */
+            if (banged != banged_previous)
+                samples_until_next_bit = samples_per_bit * 0.5f;
 
-            ibit++;
-            samples_until_next_bit += samples_per_bit;
+            if (samples_until_next_bit <= 0.5f) {
+                /* if this was the end-of-byte symbol... */
+                if (8 == ibit) {
+                    /* if the end-of-byte symbol was correct, emit complete byte */
+                    if (1 == banged) putchar(byte);
+                    else fprintf(stderr, "warning: %s: discarding possible %#x\n", __func__, byte);
+                }
+                /* otherwise set or clear this bit in the byte in progress */
+                else byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
+
+                ibit++;
+                samples_until_next_bit += samples_per_bit;
+            }
         }
 
         samples_until_next_bit--;
