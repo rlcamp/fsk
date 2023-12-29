@@ -114,6 +114,7 @@ int main(void) {
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
 
         if (9 == ibit) {
+            /* if we are not within a byte, and we see a down transition... */
             if (!banged && banged_previous) {
                 samples_until_next_bit = samples_per_bit * 1.5f;
                 ibit = 0;
@@ -127,19 +128,16 @@ int main(void) {
             if (8 == ibit) {
                 /* if the end-of-byte symbol was correct, emit complete byte */
                 if (1 == banged) putchar(byte);
-
-                /* otherwise print a warning to stderr */
                 else fprintf(stderr, "warning: %s: discarding possible %#x\n", __func__, byte);
-            } else {
-                /* set or clear this bit in the byte in progress */
-                byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
             }
+            /* otherwise set or clear this bit in the byte in progress */
+            else byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
 
             ibit++;
             samples_until_next_bit += samples_per_bit;
         }
-        samples_until_next_bit--;
 
+        samples_until_next_bit--;
         banged_previous = banged;
     }
 }
