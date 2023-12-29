@@ -19,7 +19,13 @@ int main(void) {
 
     /* initial state */
     float complex carrier = 1.0f;
-    float samples_since_bit_start = 0;
+    float samples_since_bit_start = -10.0f * samples_per_bit;
+
+    /* emit leading mark tone for ten bit periods to flush garbage out of decoder */
+    for (; samples_since_bit_start < 0.0f; samples_since_bit_start++) {
+        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
+        carrier *= advance_mark;
+    }
 
     /* for each byte on stdin... */
     for (int byte; (byte = fgetc(stdin)) != EOF; )
