@@ -119,6 +119,9 @@ int main(void) {
                 ibit = 0;
             }
         }
+        /* whenever a transition is seen within a byte, update the time to next bit */
+        else if (banged != banged_previous)
+            samples_until_next_bit = samples_per_bit * 0.5f;
         else if (samples_until_next_bit <= 0.5f) {
             /* if this was the end-of-byte symbol... */
             if (8 == ibit) {
