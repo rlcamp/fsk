@@ -65,7 +65,7 @@ int main(void) {
     const float sample_rate = 11025, f_mark = 1270, f_space = 1070, baud = 300;
 
     /* derived constants */
-    const size_t samples_per_bit = lrintf(sample_rate / baud);
+    const float samples_per_bit = sample_rate / baud;
     const float complex advance_mark = cexpf(I * 2.0f * (float)M_PI * f_mark / sample_rate);
     const float complex advance_space = cexpf(I * 2.0f * (float)M_PI * f_space / sample_rate);
 
@@ -96,9 +96,8 @@ int main(void) {
     unsigned char byte = 0;
 
     /* more state variables */
-    size_t samples_since_last_transition = SIZE_MAX;
-    size_t samples_since_last_bit = SIZE_MAX;
     size_t ibit = 9;
+    float samples_until_next_bit = 0;
 
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
@@ -114,26 +113,13 @@ int main(void) {
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.4f ? 0 : 1) : (normalized < 0.6f ? 0 : 1);
 
-        /* what follows is some very quick and dirty code from 2014 that takes oversampled,
-         thresholded input and converts it to serial bytes, assuming 8N1 encoding, emitting
-         framing errors to stderr. this was the first, most hackish thing that i came up
-         with, and further attempts at cleverness at the time failed to come up with anything
-         that worked better. nevertheless, significant improvements are likely possible */
-        samples_since_last_transition++;
-        samples_since_last_bit++;
-
-        if (banged_previous != banged)
-            samples_since_last_transition = 0;
-
-        if (9 == ibit &&
-            0 == banged &&
-            samples_since_last_transition >= samples_per_bit / 2 &&
-            samples_since_last_bit >= 3 * samples_per_bit / 2) {
-            /* detected a down transition at the start of a byte */
-            ibit = 0;
-            samples_since_last_bit = 0;
+        if (9 == ibit) {
+            if (!banged && banged_previous) {
+                samples_until_next_bit = samples_per_bit * 1.5f;
+                ibit = 0;
+            }
         }
-        else if (ibit < 9 && samples_since_last_bit == samples_per_bit) {
+        else if (samples_until_next_bit <= 0.5f) {
             /* if this was the end-of-byte symbol... */
             if (8 == ibit) {
                 /* if the end-of-byte symbol was correct, emit complete byte */
@@ -144,12 +130,12 @@ int main(void) {
             } else {
                 /* set or clear this bit in the byte in progress */
                 byte = (byte & ~(1 << ibit)) | (banged ? (1 << ibit) : 0);
-
-                samples_since_last_bit = 0;
             }
 
             ibit++;
+            samples_until_next_bit += samples_per_bit;
         }
+        samples_until_next_bit--;
 
         banged_previous = banged;
     }
