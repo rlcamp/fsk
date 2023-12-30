@@ -66,10 +66,15 @@ int main(void) {
     /* input arguments, all in cycles, samples, or symbols per second */
     const float sample_rate = 11025, f_mark = 1270, f_space = 1070, baud = 300;
 
+    /* push filters slightly farther apart to improve opposite symbol rejection */
+    const float f_diff = copysignf(fmaxf(baud, fabsf(f_mark - f_space)), f_mark - f_space);
+    const float f_mark_filter = 0.5f * (f_mark + f_space + f_diff);
+    const float f_space_filter = 0.5f * (f_mark + f_space - f_diff);
+
     /* derived constants */
     const float samples_per_bit = sample_rate / baud;
-    const float complex advance_mark = cexpf(I * 2.0f * (float)M_PI * f_mark / sample_rate);
-    const float complex advance_space = cexpf(I * 2.0f * (float)M_PI * f_space / sample_rate);
+    const float complex advance_mark = cexpf(I * 2.0f * (float)M_PI * f_mark_filter / sample_rate);
+    const float complex advance_space = cexpf(I * 2.0f * (float)M_PI * f_space_filter / sample_rate);
 
     /* 3 dB cutoff frequency for low pass filters centered on each frequency */
     const float fc = 0.5f * baud;
@@ -79,7 +84,7 @@ int main(void) {
     butterworth_biquads(num, den, 4, sample_rate, fc);
 
     /* mag squared of response to space of the filter centered at mark, and vice versa */
-    const float opp_response = butterworth_response(f_mark - f_space, fc, sample_rate, 4);
+    const float opp_response = butterworth_response(f_mark_filter - f_space, fc, sample_rate, 4);
 
     /* scaling factor for combining filter outputs to obtain a decision value */
     const float normalize = 0.5f * (1.0f + opp_response) / (1.0f - opp_response);
