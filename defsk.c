@@ -106,6 +106,12 @@ int main(void) {
     size_t ibit = 9;
     float samples_until_next_bit = 0;
 
+    /* slight additional exponential moving average for decision value */
+    const float tmp = cosf(2.0f * (float)M_PI * baud / sample_rate);
+    const float alpha = tmp - 1.0f + sqrtf(tmp * tmp - 4.0f * tmp + 3.0f);
+
+    float normalized = 0.5f;
+
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
         /* maintain filters around each of the two possible frequencies */
@@ -115,7 +121,10 @@ int main(void) {
                                               vprev_space[1], num[1], den[1], advance_space));
 
         /* a number between 0 and 1, with a bunch of noise and ripple */
-        const float normalized = 0.5f + (mm + ss ? normalize * (mm - ss) / (mm + ss) : 0.0f);
+        const float normalized_inst = 0.5f + (mm + ss ? normalize * (mm - ss) / (mm + ss) : 0.0f);
+
+        /* apply exponential moving average to the normalized value */
+        normalized = normalized + alpha * (normalized_inst - normalized);
 
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
