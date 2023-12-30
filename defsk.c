@@ -115,7 +115,7 @@ int main(void) {
                                               vprev_space[1], num[1], den[1], advance_space));
 
         /* a number between 0 and 1, with a bunch of noise and ripple */
-        const float normalized = 0.5f + normalize * (mm - ss) / (mm + ss);
+        const float normalized = 0.5f + (mm + ss ? normalize * (mm - ss) / (mm + ss) : 0.0f);
 
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
