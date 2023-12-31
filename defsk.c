@@ -62,10 +62,10 @@ int main(void) {
     const float samples_per_bit = sample_rate / baud;
     const float complex advance = cexpf(I * 2.0f * (float)M_PI * 0.5f * (f_mark + f_space) / sample_rate);
 
-    /* compute filter coefficients for four-pole butterworth biquad cascade */
-    float num[2][3], den[2][3];
-    butterworth_biquads(num, den, 4, sample_rate, baud);
-    float complex vprev[2][2] = { { 0, 0 }, { 0, 0 } };
+    /* compute filter coefficients for eight-pole butterworth biquad cascade */
+    float num[4][3], den[4][3];
+    butterworth_biquads(num, den, 8, sample_rate, baud);
+    float complex vprev[4][2] = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
 
     /* output value, with hysteresis */
     int banged = 1;
@@ -85,8 +85,9 @@ int main(void) {
 
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
-        const float complex filtered = cfilter(cfilter(sample, vprev[0], num[0], den[0], advance),
-                                             vprev[1], num[1], den[1], advance);
+        float complex filtered = sample;
+        for (size_t is = 0; is < 4; is++)
+            filtered = cfilter(filtered, vprev[is], num[is], den[is], advance);
 
         /* instantaneous frequency offset from centre of filter, in radians per second */
         const float arg = cargf(filtered * conjf(filtered_prev * advance)) * sample_rate;
