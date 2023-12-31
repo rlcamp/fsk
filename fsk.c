@@ -23,7 +23,7 @@ int main(void) {
 
     /* emit leading mark tone for ten bit periods to flush garbage out of decoder */
     for (; samples_since_bit_start < 0.0f; samples_since_bit_start++) {
-        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
+        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32763.0f) }, sizeof(int16_t), 1, stdout);
         carrier *= advance_mark;
     }
 
@@ -35,7 +35,7 @@ int main(void) {
 
             /* for each sample, accounting for noninteger sample rate over baud... */
             for (; samples_since_bit_start < samples_per_bit; samples_since_bit_start++) {
-                fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
+                fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32763.0f) }, sizeof(int16_t), 1, stdout);
                 carrier *= bit ? advance_mark : advance_space;
             }
 
@@ -46,7 +46,7 @@ int main(void) {
 
     /* emit trailing mark tone for two bit periods to flush decoder */
     for (; samples_since_bit_start < 2.0f * samples_per_bit; samples_since_bit_start++) {
-        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32767.0f) }, sizeof(int16_t), 1, stdout);
+        fwrite(&(int16_t) { lrintf(cimagf(carrier) * 32763.0f) }, sizeof(int16_t), 1, stdout);
         carrier *= advance_mark;
     }
 }
