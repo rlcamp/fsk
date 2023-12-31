@@ -67,21 +67,18 @@ int main(void) {
     butterworth_biquads(num, den, 8, sample_rate, baud);
     float complex vprev[4][2] = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
 
-    /* output value, with hysteresis */
-    int banged = 1;
+    /* the previous filter output, for consecutive-sample fm detection */
+    float complex filtered_prev = 0.0f;
 
-    /* the previous sample, used to determine if there has been a transition */
-    int banged_previous = 1;
-
-    /* stores the byte in progress */
-    unsigned char byte = 0;
+    /* current and previous decision value, for transition detection */
+    int banged = 1, banged_previous = 1;
 
     /* more state variables */
     size_t ibit = 9;
     float samples_until_next_bit = 0;
 
-    /* the previous filter output, for consecutive-sample fm detection */
-    float complex filtered_prev = 0.0f;
+    /* stores the byte in progress */
+    unsigned char byte = 0;
 
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
