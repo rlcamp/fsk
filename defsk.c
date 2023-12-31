@@ -7,10 +7,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-static float cmagsquaredf(const float complex x) {
-    return crealf(x) * crealf(x) + cimagf(x) * cimagf(x);
-}
-
 static void butterworth_biquads(float num[][3], float den[][3], size_t P, float fs, float fc) {
     /* number of poles must be even */
     assert(!(P % 2));
@@ -56,42 +52,20 @@ static float complex cfilter(const float complex x, float complex vprev[2], cons
     return y;
 }
 
-static float butterworth_response(float f, float fc, float fs, unsigned n) {
-    return 1.0f / (1.0f + powf(tanf((float)M_PI * f / fs) / tanf((float)M_PI * fc / fs), 2 * n));
-}
-
 int main(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
 
     /* input arguments, all in cycles, samples, or symbols per second */
     const float sample_rate = 11025, f_mark = 1270, f_space = 1070, baud = 300;
 
-    /* push filters slightly farther apart to improve opposite symbol rejection */
-    const float f_diff = copysignf(fmaxf(baud, fabsf(f_mark - f_space)), f_mark - f_space);
-    const float f_mark_filter = 0.5f * (f_mark + f_space + f_diff);
-    const float f_space_filter = 0.5f * (f_mark + f_space - f_diff);
-
     /* derived constants */
     const float samples_per_bit = sample_rate / baud;
-    const float complex advance_mark = cexpf(I * 2.0f * (float)M_PI * f_mark_filter / sample_rate);
-    const float complex advance_space = cexpf(I * 2.0f * (float)M_PI * f_space_filter / sample_rate);
-
-    /* 3 dB cutoff frequency for low pass filters centered on each frequency */
-    const float fc = 0.5f * baud;
+    const float complex advance = cexpf(I * 2.0f * (float)M_PI * 0.5f * (f_mark + f_space) / sample_rate);
 
     /* compute filter coefficients for four-pole butterworth biquad cascade */
     float num[2][3], den[2][3];
-    butterworth_biquads(num, den, 4, sample_rate, fc);
-
-    /* mag squared of response to space of the filter centered at mark, and vice versa */
-    const float opp_response = butterworth_response(f_mark_filter - f_space, fc, sample_rate, 4);
-
-    /* scaling factor for combining filter outputs to obtain a decision value */
-    const float normalize = 0.5f * (1.0f + opp_response) / (1.0f - opp_response);
-
-    /* internal state for filters centered on each carrier */
-    float complex vprev_mark[2][2] = { { 0, 0 }, { 0, 0 } };
-    float complex vprev_space[2][2] = { { 0, 0 }, { 0, 0 } };
+    butterworth_biquads(num, den, 4, sample_rate, baud);
+    float complex vprev[2][2] = { { 0, 0 }, { 0, 0 } };
 
     /* output value, with hysteresis */
     int banged = 1;
@@ -106,25 +80,20 @@ int main(void) {
     size_t ibit = 9;
     float samples_until_next_bit = 0;
 
-    /* slight additional exponential moving average for decision value */
-    const float tmp = cosf(2.0f * (float)M_PI * baud / sample_rate);
-    const float alpha = tmp - 1.0f + sqrtf(tmp * tmp - 4.0f * tmp + 3.0f);
-
-    float normalized = 0.5f;
+    /* the previous filter output, for consecutive-sample fm detection */
+    float complex filtered_prev = 0.0f;
 
     /* loop over raw pcm samples on stdin */
     for (int16_t sample; fread(&sample, sizeof(int16_t), 1, stdin) > 0; ) {
-        /* maintain filters around each of the two possible frequencies */
-        const float mm = cmagsquaredf(cfilter(cfilter(sample, vprev_mark[0], num[0], den[0], advance_mark),
-                                              vprev_mark[1], num[1], den[1], advance_mark));
-        const float ss = cmagsquaredf(cfilter(cfilter(sample, vprev_space[0], num[0], den[0], advance_space),
-                                              vprev_space[1], num[1], den[1], advance_space));
+        const float complex filtered = cfilter(cfilter(sample, vprev[0], num[0], den[0], advance),
+                                             vprev[1], num[1], den[1], advance);
+
+        /* instantaneous frequency offset from centre of filter, in radians per second */
+        const float arg = cargf(filtered * conjf(filtered_prev * advance)) * sample_rate;
+        filtered_prev = filtered;
 
         /* a number between 0 and 1, with a bunch of noise and ripple */
-        const float normalized_inst = 0.5f + (mm + ss ? normalize * (mm - ss) / (mm + ss) : 0.0f);
-
-        /* apply exponential moving average to the normalized value */
-        normalized = normalized + alpha * (normalized_inst - normalized);
+        const float normalized = 0.5f + arg / (2.0f * (float)M_PI * (f_mark - f_space));
 
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
