@@ -75,7 +75,7 @@ int main(void) {
 
     /* more state variables */
     size_t ibit = 9;
-    float samples_until_next_bit = 0;
+    float samples_until_next_bit = samples_per_bit;
 
     /* stores the byte in progress */
     unsigned char byte = 0;
@@ -96,7 +96,7 @@ int main(void) {
         /* either 0 or 1, with some hysteresis for debouncing */
         banged = banged ? (normalized < 0.25f ? 0 : 1) : (normalized < 0.75f ? 0 : 1);
 
-        if (9 == ibit) {
+        if (9 == ibit && samples_until_next_bit <= 0.75f * samples_per_bit) {
             /* if we are not within a byte, and we see a down transition... */
             if (!banged && banged_previous) {
                 samples_until_next_bit = samples_per_bit * 1.5f;
