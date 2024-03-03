@@ -64,7 +64,7 @@ int main(void) {
 
     /* compute filter coefficients for eight-pole butterworth biquad cascade */
     float num[4][3], den[4][3];
-    butterworth_biquads(num, den, 8, sample_rate, baud);
+    butterworth_biquads(num, den, 8, sample_rate, fmaxf(baud, 1.5f * fabsf(f_mark - f_space)));
     float complex vprev[4][2] = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
 
     /* the previous filter output, for consecutive-sample fm detection */
