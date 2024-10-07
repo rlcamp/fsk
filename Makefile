@@ -12,7 +12,7 @@ endif
 
 CFLAGS ?= -Os
 # older versions of gcc need -fcx-limited-range, in others its effect is implied by -ffinite-math-only
-ifeq (0,$(shell cc -fcx-limited-range -x c -o /dev/null -c - < /dev/null 2>/dev/null; echo $$?))
+ifeq (0,$(shell ${CC} -fcx-limited-range -x c -o /dev/null -c - < /dev/null 2>/dev/null; echo $$?))
 	CFLAGS += -fcx-limited-range
 endif
 
